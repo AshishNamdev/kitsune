@@ -1,0 +1,18 @@
+{% if media_list.object_list %}
+  <ol id="media-list" class="cf">
+    {% for m in media_list.object_list %}
+      <li>
+        <a href="{{ m.get_absolute_url() }}" title="{{ m.title }}">
+          <img src="{{ m.thumbnail_url_if_set() }}" alt="{{ m.title }}" />
+        </a>
+      </li>
+    {% endfor %}
+  </ol>
+  <div class="grid_12">
+    {{ media_list|paginator }}
+  </div>
+{% else %}
+  <div class="grid_12">
+    <p>{{ _('No media files found.') }}</p>
+  </div>
+{% endif %}

@@ -1,0 +1,7 @@
+<h3>{{ _('Post Preview:') }}</h3>
+<ol class="posts">
+  <li>
+    {% set post = post_preview %}
+    {% include "forums/includes/post.html" %}
+  </li>
+</ol>

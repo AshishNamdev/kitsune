@@ -2,33 +2,51 @@ import os
 import site
 from datetime import datetime
 
+try:
+    import newrelic.agent
+except ImportError:
+    newrelic = False
+
+
+if newrelic:
+    newrelic_ini = os.getenv('NEWRELIC_PYTHON_INI_FILE', False)
+    if newrelic_ini:
+        newrelic.agent.initialize(newrelic_ini)
+    else:
+        newrelic = False
+
+
 # Remember when mod_wsgi loaded this file so we can track it in nagios.
 wsgi_loaded = datetime.now()
 
-# Add the zamboni dir to the python path so we can import manage.
+# Add kitsune to the python path
 wsgidir = os.path.dirname(__file__)
 site.addsitedir(os.path.abspath(os.path.join(wsgidir, '../')))
 
 # For django-celery
 os.environ['CELERY_LOADER'] = 'django'
 
-# manage adds /apps, /lib, and /vendor to the Python path.
+# Activate virtualenv
+activate_env = os.path.abspath(os.path.join(wsgidir, "../virtualenv/bin/activate_this.py"))
+execfile(activate_env, dict(__file__=activate_env))
+
+# Import for side-effects: set-up
 import manage
 
 import django.conf
-import django.core.handlers.wsgi
-import django.core.management
-import django.utils
+# import django.core.management
+# import django.utils
 
 # Do validate and activate translations like using `./manage.py runserver`.
 # http://blog.dscpl.com.au/2010/03/improved-wsgi-script-for-use-with.html
-django.utils.translation.activate(django.conf.settings.LANGUAGE_CODE)
-utility = django.core.management.ManagementUtility()
-command = utility.fetch_command('runserver')
-command.validate()
+# django.utils.translation.activate(django.conf.settings.LANGUAGE_CODE)
+# utility = django.core.management.ManagementUtility()
+# command = utility.fetch_command('runserver')
+# command.validate()
 
 # This is what mod_wsgi runs.
-django_app = django.core.handlers.wsgi.WSGIHandler()
+from django.core.wsgi import get_wsgi_application
+django_app = get_wsgi_application()
 
 # Normally we could let WSGIHandler run directly, but while we're dark
 # launching, we want to force the script name to be empty so we don't create
@@ -38,6 +56,11 @@ def application(env, start_response):
         env['SCRIPT_URL'] = env['SCRIPT_NAME'] = ''
     env['wsgi.loaded'] = wsgi_loaded
     env['platform.name'] = django.conf.settings.PLATFORM_NAME
+
+    if newrelic:
+        return newrelic.agent.wsgi_application()(
+            django_app)(env, start_response)
+
     return django_app(env, start_response)
 
 

@@ -10,7 +10,7 @@ Kitsune is localized with `gettext <http://www.gnu.org/software/gettext/>`_.
 User-facing strings in the code or templates need to be marked for gettext
 localization.
 
-We use `Verbatim <http://localize.mozilla.org/>`_ to provide an easy interface
+We use `Pontoon <https://pontoon.mozilla.org/>`_ to provide an easy interface
 to localizing these files. Localizers are also free to download the PO files
 and use whatever tool they are comfortable with.
 
@@ -179,6 +179,15 @@ tag::
     {% trans %}
 
 
+You can also provide comments::
+
+    {# L10n: User is a username #}
+    {% trans user=request.user.username %}
+        Thanks for registering, {{ user }}! We're so...
+        hope that you'll...
+    {% trans %}
+
+
 Strings in Python
 -----------------
 
@@ -301,7 +310,7 @@ Then, all you need to do is run the ``extract_db`` management command::
 
 *Be sure to have a recent database from production when running the command.*
 
-By default, this will write all the strings to `apps/sumo/db_strings.py`
+By default, this will write all the strings to `kitsune/sumo/db_strings.py`
 and they will get picked up during the normal string extraction (see below).
 
 
@@ -364,15 +373,9 @@ When we add strings that need to be localized, it can take a couple of
 weeks for us to get translations of those localized strings. This
 makes it difficult to find localization issues.
 
-Enter poxx.
+Enter `Dennis <https://github.com/willkg/dennis/>`_.
 
-Requirements:
-
-1. Install polib - ``pip install polib``
-2. Get ``compile-mo.sh``. You can do this by getting the
-   localizations. See :ref:`getting-localizations`.
-
-After getting requirements::
+Run::
 
     $ ./scripts/test_locales.sh
 
@@ -399,42 +402,40 @@ Strings in the Pirate translation have the following properties:
    available on -dev, -stage, or -prod.
 
 
+Linting localized strings
+=========================
+
+You can lint localized strings for warnings and errors::
+
+    $ ./manage.py lint locales/
+
+You can see help text::
+
+    $ ./manage.py lint
+
+
 .. _getting-localizations:
 
 Getting the Localizations
 =========================
 
-Localizations are not stored in this repository, but are in Mozilla's SVN:
+Localizations are not stored in this repository, but are in a separate Git repo:
 
-    http://svn.mozilla.org/projects/sumo/locales
+    https://github.com/mozilla-l10n/sumo-l10n
 
 You don't need the localization files for general development. However, if
 you need them for something, they're pretty easy to get::
 
     $ cd kitsune
-    $ svn checkout https://svn.mozilla.org/projects/sumo/locales locale
-
-(Alternatively, you can do yourself a favor and use::
-
-    $ git svn clone -r HEAD https://svn.mozilla.org/projects/sumo/locales locale
-
-if you're a git fan.)
+    $ git clone https://github.com/mozilla-l10n/sumo-l10n locale
 
 
 Updating the Localizations
 ==========================
 
 When strings are added or updated, we need to update the templates and PO files
-for localizers. This needs to be coordinated with someone who has rights to
-update the data on `Verbatim <http://localize.mozilla.org/>`_. If you commit
-new strings to SVN and they are not updated right away on Verbatim, there will
-be big merging headaches.
-
-Make sure you have the following installed:
-
-* Babel: ``pip install Babel``
-
-Updating strings is pretty easy. Check out the localizations as above, then::
+for localizers. Updating strings is pretty easy. Check out the localizations as
+above, then::
 
     $ python manage.py extract
     $ python manage.py merge
@@ -455,7 +456,8 @@ Say you wanted to add ``fa-IR``::
     $ mkdir -p locale/fa-IR/LC_MESSAGES
     $ python manage.py merge
 
-Then add 'fa-IR' to SUMO_LANGUAGES in settings.py.
+Then add 'fa-IR' to SUMO_LANGUAGES in settings.py and make sure there is
+an entry in lib/languages.json (if not, add it).
 
 And finally, add a migration with::
 
@@ -473,7 +475,7 @@ files in the repository.
 
 We don't store MO files in the repository because they need to change every
 time the corresponding PO file changes, so it's silly and not worth it. They
-are ignored by ``svn:ignore``, but please make sure you don't forcibly add them
+are ignored by ``.gitignore``, but please make sure you don't forcibly add them
 to the repository.
 
 There is a shell script to compile the MO files for you::
@@ -481,3 +483,51 @@ There is a shell script to compile the MO files for you::
     $ ./locale/compile-mo.sh locale
 
 Done!
+
+
+Reporting errors in .po files
+==============================
+
+We use Dennis to lint .po files for errors that cause HTTP 500 errors in
+production. Things like malformed variables, variables in the translated
+string that aren't in the original and that sort of thing.
+
+When we do a deployment to production, we dump all the Dennis output into:
+
+https://support.mozilla.org/media/postatus.txt
+
+We need to check that periodically and report the errors.
+
+If there are errors in those files, we need to open up a bug in
+**Mozilla Localizations** -> *locale code* with the specifics.
+
+Product:
+
+    Mozilla Localizations
+
+Component:
+
+    The locale code for the language in question
+
+Bug summary:
+
+    Use the error line
+
+Bug description template:
+
+    ::
+
+        We found errors in the translated strings for Mozilla Support
+        <https://support.mozilla.org/>. The errors are as follows:
+
+
+        <paste errors here>
+
+
+        Until these errors are fixed, we can't deploy updates to the
+        strings for this locale to production.
+
+        Mozilla Support strings can be fixed in the Support Mozilla project
+        in Pontoon <https://pontoon.mozilla.org/projects/sumo/>.
+
+        If you have any questions, let us know.

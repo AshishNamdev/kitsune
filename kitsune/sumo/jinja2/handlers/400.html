@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% if not title %}
+  {% set title = _('Oops, your request was unsuccessful') %}
+{% endif %}
+{% if message == None %}
+  {% set message = _("We couldn't perform your request. Perhaps because the action is no longer applicable or you tried to perform an invalid action.") %}
+{% endif %}
+
+{% block content %}
+<article id="error-page">
+  <h1>{{ title }}</h1>
+
+  <p>{{ message }}</p>
+</article>
+{% endblock %}

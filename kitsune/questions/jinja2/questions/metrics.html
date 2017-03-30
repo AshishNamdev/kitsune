@@ -1,0 +1,91 @@
+{% extends "questions/base.html" %}
+{% from "dashboards/includes/macros.html" import product_choice_list with context %}
+{% set title = _('Support Forum Metrics') %}
+{% set crumbs = [(url('questions.home'), _('Support Forum')),
+                 (None, _('Metrics'))] %}
+{% set scripts = ('jqueryui', 'rickshaw', 'questions.metrics') %}
+{% set styles = ('rickshaw', 'questions.metrics') %}
+
+{% block content %}
+  <h1>{{ _('Support Forum Metrics') }}</h1>
+
+  {% if not current_locale %}
+    {% set base_url = url('questions.metrics')|urlparams(None, request.GET)|urlparams(product=None) %}
+  {% else %}
+    {% set base_url = url('questions.locale_metrics', current_locale)|urlparams(None, request.GET)|urlparams(product=None) %}
+  {% endif %}
+  {{ product_choice_list(products, product, base_url) }}
+
+  <div class="choice-list">
+    <label>{{ _('Locale:') }}</label>
+    <ul>
+      <li>
+        {% if not current_locale %}
+          {{ _('All') }}
+        {% else %}
+          <a href="{{ url('questions.metrics') }}">{{ _('All') }}</a>
+        {% endif %}
+      </li>
+      {% for locale in AAQ_LANGUAGES %}
+        <li>
+          {% if current_locale == locale %}
+            {{ locale }}
+          {% else %}
+            <a href="{{ url('questions.locale_metrics', locale)|urlparams(None, request.GET) }}">{{ locale }}</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {% set api_url = url('api.kpi.questions') %}
+  {% if current_locale %}
+    {% set api_url = api_url|urlparams(locale=current_locale) %}
+  {% endif %}
+  {% if product %}
+    {% set api_url = api_url|urlparams(product=product.slug) %}
+  {% endif %}
+  <section id="questions-metrics" data-url="{{ api_url }}">
+    <div class="rickshaw">
+      <div class="inline-controls"></div>
+      <div class="graph-container">
+        <div class="slider"></div>
+        <div class="graph"></div>
+      </div>
+    </div>
+  </section>
+
+  {% if graph %}
+    <div id="topic-stats" data-graph="{{ graph|json }}">
+      <h2 class="grid_12">{{ _('Topics') }}</h2>
+
+      <div class="grid_9 alpha">
+        <div class="graph-container">
+          <div class="graph"></div>
+        </div>
+      </div>
+
+      <div class="controls grid_3 omega">
+        <div class="legend"></div>
+        <div class="search">
+          <form>
+            <ul>
+              {{ form.as_ul() }}
+              <li><input type="submit" /></li>
+            </ul>
+            {% if product %}
+              <input type="hidden" name="product" value="{{ product.slug }}" />
+            {% endif %}
+          </form>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <p>
+      {{ _('There is no topic data available for the current selections.') }}
+    </p>
+  {% endif %}
+{% endblock %}
+
+{% block side %}
+{% endblock %}

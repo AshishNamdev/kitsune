@@ -1,49 +1,32 @@
 #!/usr/bin/env python
 import os
-import site
 import sys
-
-
-ROOT = os.path.dirname(os.path.abspath(__file__))
-path = lambda *a: os.path.join(ROOT, *a)
-
-prev_sys_path = list(sys.path)
-
-site.addsitedir(path('apps'))
-site.addsitedir(path('lib'))
-site.addsitedir(path('vendor'))
-
-# Move the new items to the front of sys.path.
-new_sys_path = []
-for item in list(sys.path):
-    if item not in prev_sys_path:
-        new_sys_path.append(item)
-        sys.path.remove(item)
-sys.path[:0] = new_sys_path
+import traceback
 
 # Now we can import from third-party libraries.
 
-from django.core.management import execute_manager, setup_environ
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'kitsune.settings_local')
+os.environ.setdefault('CELERY_CONFIG_MODULE', 'kitsune.settings_local')
 
+# MONKEYPATCH! WOO HOO!
+# Need this so we patch before running Django-specific commands which
+# then result in a circular import.
 try:
-    import settings_local as settings
+    from kitsune.sumo.monkeypatch import patch  # noqa
+    patch()
 except ImportError:
-    try:
-        import settings  # Assumed to be in the same directory.
-    except ImportError:
-        sys.stderr.write(
-            "Error: Tried importing 'settings_local.py' and 'settings.py' "
-            "but neither could be found (or they're throwing an ImportError)."
-            " Please come back and try again later.")
-        raise
-
-# The first thing execute_manager does is call `setup_environ`.  Logging config
-# needs to access settings, so we'll setup the environ early.
-setup_environ(settings)
+    print 'OH NOES! There was an import error:'
+    print ''
+    print ''.join(traceback.format_exception(*sys.exc_info()))
+    if 'VIRTUAL_ENV' in os.environ:
+        print 'Have you installed requirements? Are they up-to-date?'
+    else:
+        print 'Have you activated your virtual environment?'
+    sys.exit(1)
 
 # Import for side-effect: configures our logging handlers.
-import log_settings
-
+from kitsune import log_settings  # noqa
 
 if __name__ == "__main__":
-    execute_manager(settings)
+    from django.core.management import execute_from_command_line
+    execute_from_command_line(sys.argv)

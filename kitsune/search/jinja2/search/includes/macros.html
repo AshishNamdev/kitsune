@@ -1,0 +1,15 @@
+{% macro basic_search_form(primary=False) -%}
+  {# Must be imported with context #}
+  <div {% if primary %}id="basic-search"{% endif %} class="search-refine">
+    <form class="simple-search-form cf" role="search" method="get" action="search">
+      {% for name, field in search_form.fields.items() if not name in ('q',) %}
+        {% set list = request.GET.getlist(name) %}
+        {% for value in list %}
+          <input type="hidden" name="{{ name }}" value="{{ value }}" />
+        {% endfor %}
+      {% endfor %}
+      <input type="text" class="searchbox" value="{{ q }}" name="q">
+      <button type="submit" class="btn btn-important big">{{ _('Search Mozilla Support') }}</button>
+    </form>
+  </div>
+{%- endmacro %}

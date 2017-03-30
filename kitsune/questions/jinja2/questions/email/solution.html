@@ -1,0 +1,35 @@
+{% extends 'email/base.html' %}
+
+{% block content %}
+  {% if display_name(to_user) %}
+    <p>{{ _('Hi {username},')|f(username=display_name(to_user)) }}</p>
+  {% endif %}
+
+  <p>
+    {% trans answerer=display_name(answerer) %}
+      We just wanted to let you know that {{ answerer }}
+      has found a solution to a Firefox question that you're following.
+    {% endtrans %}
+  </p>
+
+  <p>{{ _("The question: '{title}' was marked as solved by its asker, {asker}.")|f(title=question_title, asker=display_name(asker)) }}</p>
+
+  <p>
+    {% trans %}
+      Did this answer also help you? Did you find another post more
+      helpful? Let other Firefox users know by voting next to the
+      answer.
+    {% endtrans %}
+  </p>
+
+  <p><a href="https://{{ host }}{{ solution_url }}">{{ _('View the solution') }}</a></p>
+
+  <p>
+    {% trans answerer=display_name(answerer) %}
+      Did you know that {{ answerer }} is a Firefox user
+      just like you? Get started helping other Firefox users by
+      <a href="https://{{ host }}/questions?filter=unsolved">
+      browsing questions</a> -- you might just make someone's day!
+    {% endtrans %}
+  </p>
+{% endblock %}

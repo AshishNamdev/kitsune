@@ -1,0 +1,38 @@
+{% extends "questions/base.html" %}
+{% if success %}
+  {% set title = _('You have been unsubscribed.') %}
+{% else %}
+  {% set title = _('There was a problem unsubscribing.') %}
+{% endif %}
+{% set classes = 'questions notifications' %}
+{% set crumbs = [(url('questions.home'), _('Support Forum')),
+                 (question.get_absolute_url(), question.title),
+                 (None, _('Email updates'))] %}
+
+{% block content %}
+  <div class="grid_12">
+    <article class="main">
+      <div class="unsubscribe-watch highlight-box">
+        <h1>{{ title }}</h1>
+        <p>
+          {% if success %}
+            {% trans question_title=question.title,
+                     question_url=question.get_absolute_url() %}
+              You will no longer receive email updates for this question:
+              <a href="{{ question_url }}">{{ question_title }}</a>
+            {% endtrans %}
+          {% else %}
+            {% trans question_title=question.title,
+                     question_url=question.get_absolute_url() %}
+              We could not unsubscribe you from this question:
+              <a href="{{ question_url }}">{{ question_title }}</a>.
+              Please make sure you copied and pasted the unsubscribe link correctly.
+            {% endtrans %}
+          {% endif %}
+        </p>
+      </div>
+    </article>
+  </div>
+{% endblock %}
+
+{% block side %}{% endblock %}

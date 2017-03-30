@@ -29,9 +29,9 @@ Part 2: Developer's Guide
    email
    localization
    searchchapter
+   frontend
    armyofawesome
    karma
-   vendor
    wikidocs
    notes
    licenses
@@ -43,15 +43,27 @@ Part 3: SUMO
 .. toctree::
    :maxdepth: 2
 
+   api
    bots
    deployments
    sop
    sla
 
+Part 4: Administration
+======================
+
+.. toctree::
+   :maxdepth: 2
+
+   products
+   groups
+   users
+   questions
+   forums
+   badges
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`modindex`
-

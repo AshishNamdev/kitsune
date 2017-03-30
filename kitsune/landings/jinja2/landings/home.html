@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from 'products/includes/product_macros.html' import product_cards with context %}
+{% set styles = ('home',) %}
+
+{% block content %}
+  <div class="grid_12">
+    <section id="products-and-services">
+      {{ product_cards(products) }}
+    </section>
+  </div>
+  <section id="get-involved-box" class="grid_12">
+    <a class="btn btn-submit" href="{{ url('landings.get_involved') }}">
+      {{ _('Volunteer for Mozilla Support') }}
+    </a>
+  </section>
+{% endblock %}
+
+{% block outer_side %}
+{% endblock %}
+
+{% block breadcrumbs %}
+{% endblock %}

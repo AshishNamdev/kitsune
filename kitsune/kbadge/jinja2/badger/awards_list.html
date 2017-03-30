@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% set crumbs = [(url('badger.badges_list'), _('Badges')), (None, _('Recently Awarded'))] %}
+{% set styles=('badges',) %}
+
+{% block content %}
+  <div class="grid_12">
+    {% if badge %}
+      {% trans badge_name=pgettext('DB: badger.Badge.title', badge.title) %}
+        <h2>Recently awarded &quot;{{ badge_name }}&quot; badges</h2>
+      {% endtrans %}
+    {% else %}
+      <h2>{{ _('Recently awarded badges') }}</h2>
+    {% endif %}
+  </div>
+
+  <ul class="cf" id="awards-list">
+    {% for award in award_list %}
+      {% if award.image %}
+        {% set award_image = award.image.url %}
+      {% elif award.badge.image %}
+        {% set award_image = award.badge.image.url %}
+      {% else %}
+        {% set award_image = STATIC_URL + 'kbadge/img/default-badge.png' %}
+      {% endif %}
+      <li class="grid_4">
+        <a class="cf" href="{{ award.get_absolute_url() }}">
+          <div class="badge">
+            <img src="{{ award_image }}" alt="" title="{{ pgettext('DB: badger.Badge.title', award.badge.title) }}">
+            <span>{{ pgettext('DB: badger.Badge.title', award.badge.title) }}</span>
+          </div>
+          <div class="award">
+            {{ _('awarded to') }}
+            <br><img src="{{ profile_avatar(award.user) }}" alt="" title="{{ award.user }}">
+            <br>{{ award.user }}
+          </div>
+          <div class="meta">
+            {{ datetimeformat(award.created) }}
+          </div>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+
+  {% if is_paginated %}
+    <ol class="pagination cf">
+      {% if page_obj.has_previous() %}
+        <li class="prev">
+          <a href="{{ pagination_base_url }}?page={{ page_obj.previous_page_number() }}&sort={{current_sort}}" class="btn-page btn-page-prev">{{_('Previous')}}</a>
+        </li>
+      {% endif %}
+      {% if page_obj.has_next() %}
+        <li class="next">
+          <a href="{{ pagination_base_url }}?page={{ page_obj.next_page_number() }}&sort={{current_sort}}" class="btn-page btn-page-next">{{_('Next')}}</a>
+        </li>
+      {% endif %}
+    </ol>
+  {% endif %}
+{% endblock %}

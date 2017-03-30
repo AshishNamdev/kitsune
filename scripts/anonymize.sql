@@ -29,7 +29,9 @@ UPDATE django_site SET
 
 -- We don't pull images from production, clearing out the fields
 -- let's us see the default placeholders.
-UPDATE topics_topic SET
-	image = NULL;
+UPDATE products_topic SET
+    image = NULL;
 UPDATE products_product SET
-	image = NULL;
+    image = NULL;
+UPDATE products_topic SET
+    image = NULL;

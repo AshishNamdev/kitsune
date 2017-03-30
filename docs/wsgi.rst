@@ -21,9 +21,8 @@ Overview
 ========
 
 Setting up Kitsune to run as a WSGI application is fairly
-straightforward. You will need to install the requirements and clone
-the vendor repo as described in :ref:`the installation chapter
-<hacking-howto-chapter>`.
+straightforward. You will need to install the requirements as described 
+in :ref:`the installation chapter <hacking-howto-chapter>`.
 
 There are 3 steps once Kitsune is installed:
 
@@ -59,7 +58,7 @@ In the Apache config (or ``<VirtualHost>``) you will need the following:
 
     Alias /media/ "/path/to/kitsune/media/"
     Alias /admin-media/ \
-        "/path/to/kitsune/vendor/src/django/django/contrib/admin/media/"
+        "/path/to/virtualenv/lib/python<version>/site-packages/django/django/contrib/admin/media/"
 
     WSGISocketPrefix /var/run/wsgi
 
@@ -89,10 +88,9 @@ Apache, reducing the load on Django.
 Configuration
 -------------
 
-Most of our ``settings.py`` is under version control, but can be
-overridden in a file called ``settings_local.py`` in the base of the
-app (the same place as ``settings.py``). You can see example settings
-in the :ref:`hacking-howto-chapter`.
+Most of our ``kitsune/settings.py`` is under version control, but can be
+overridden in a file called ``kitsune/settings_local.py``. You can see
+example settings in the :ref:`hacking-howto-chapter`.
 
 
 
@@ -128,11 +126,11 @@ and executable.
 
 By default, ``product_details`` stores the JSON files in::
 
-    vendor/src/django-mozilla-product-details/product_details/json
+    path/to/virtualenv/lib/python<version>/site=packages/django-mozilla-product-details/product_details/json
 
 This is configurable. If you have multiple web servers, they should share this
-data. You can set the ``PROD_DETAILS_DIR`` variable in ``settings_local.py`` to
-a different path, for example on NFS.
+data. You can set the ``PROD_DETAILS_DIR`` variable in
+``kitsune/settings_local.py`` to a different path, for example on NFS.
 
 
 Debugging
@@ -164,16 +162,16 @@ logs, for example ``/var/log/httpd/ssl_error_log``.
 With ``DEBUG=True``
 -------------------
 
-With ``DEBUG = True`` in your ``settings_local.py``, you will see a stack trace
-in the browser on error. Problem solved!
+With ``DEBUG = True`` in your ``kitsune/settings_local.py``, you will see
+a stack trace in the browser on error. Problem solved!
 
 
 With ``DEBUG=False``
 --------------------
 
-With ``DEBUG = False`` in your ``settings_local.py``, you'll see our Server
-Error message. You can still get stack traces, though, by setting the
-``ADMINS`` variable in ``settings_local.py``::
+With ``DEBUG = False`` in your ``kitsune/settings_local.py``, you'll see our
+Server Error message. You can still get stack traces, though, by setting the
+``ADMINS`` variable in ``kitsune/settings_local.py``::
 
     ADMINS = (
         ('me', 'my@email.address'),

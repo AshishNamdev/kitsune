@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "includes/common_macros.html" import for_contributors_sidebar %}
+{% from "dashboards/includes/macros.html" import product_selector %}
+{% from "dashboards/includes/macros.html" import category_filter with context %}
+{% set title = 'Knowledge Base Overview' %}
+{% set scripts = ('wiki', 'wiki.dashboard') %}
+{% set styles = ('kbdashboards',) %}
+{% set crumbs = [(url(main_dash_view), main_dash_title), (None, title)] %}
+{# TODO: Move required dashboard scripts out of wiki.js into their own #}
+
+{% block content %}
+  <div class="grid_12">
+    <article class="main dashboards dashboards-detail">
+      <div class="cf">
+        {{ product_selector(products, product) }}
+      </div>
+      <div class="cf">
+        {{ category_filter() }}
+      </div>
+      <h1>{{ title }}</h1>
+      <ul class="readout-modes" data-slug="kb-overview">
+        {% for key, name in overview_modes %}
+          <li class="mode{% if key == 2 %} active{% endif %}" data-url="{{ url('dashboards.contributors_overview_rows')|urlparams(max=10, mode=key, locale=locale, product=product.slug) }}">
+            <a href="#">{{ name }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <table id="kb-overview-table">
+        {% include 'dashboards/includes/kb_overview.html' %}
+      </table>
+    </article>
+  </div>
+{% endblock %}

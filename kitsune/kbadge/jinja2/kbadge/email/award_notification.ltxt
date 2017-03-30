@@ -1,0 +1,18 @@
+{{ _('Congratulations!') }}
+
+{% if award.creator %}
+{% trans awarder=display_name(award.creator), title=pgettext('DB: badger.Badge.title', badge.title) %}
+{{ awarder }} has awarded you the {{ title }} badge!
+{% endtrans %}
+{% else %}
+{% trans title=pgettext('DB: badger.Badge.title', badge.title) %}
+You have been awarded the {{ title }} badge!
+{% endtrans %}
+{% endif %}
+
+{% if award.description %}
+{{ award.description }}
+{% endif %}
+
+{{ _('See all the details:') }}
+https://{{ host }}{{ award.get_absolute_url() }}

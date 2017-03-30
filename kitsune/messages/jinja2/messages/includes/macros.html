@@ -1,0 +1,83 @@
+{% from "includes/common_macros.html" import content_editor with context %}
+
+{% macro avatar_link(user=None) -%}
+  {% if user %}
+    <a href="{{ profile_url(user) }}">
+      <img src="{{ profile_avatar(user) }}" height="48" width="48" alt="{{ display_name(user) }}" />
+    </a>
+  {% else %}
+    <img src="{{ profile_avatar(user) }}" height="48" width="48" alt="{{ _('System') }}" />
+  {% endif %}
+{%- endmacro %}
+
+{% macro name_link(user=None, name=None) -%}
+  {% if user -%}
+    <a href="{{ profile_url(user) }}">{% if name %}{{ name }}{% else %}{{ display_name(user) }}{% endif %}</a>
+  {%- else -%}
+    {{ name if name else _('System') }}
+  {%- endif %}
+{%- endmacro %}
+
+{% macro message_tabs(active_tab) -%}
+  <ul id="pm-nav" class="sidebar-nav">
+    <li {{ active_tab|class_selected('inbox') }}>
+      <a href="{{ url('messages.inbox') }}">{{ _('Inbox') }}</a>
+    </li>
+    <li {{ active_tab|class_selected('outbox') }}>
+      <a href="{{ url('messages.outbox') }}">{{ _('Sent Messages') }}</a>
+    </li>
+    <li {{ active_tab|class_selected('new') }}>
+      <a href="{{ url('messages.new') }}">{{ _('New Message') }}</a>
+    </li>
+  </ul>
+{%- endmacro %}
+
+{% macro inbox_message(message) -%}
+  <span class="avatar">{{ avatar_link(message.sender) }}</span>
+  <span class="from">{{ name_link(message.sender) }} {{ datetimeformat(message.created) }}</span>
+  <div class="message">{{ message.content_parsed }}</div>
+{%- endmacro %}
+
+
+{% macro outbox_message(message) -%}
+  <span class="avatar">
+    {% if message.recipients > 1 -%}
+      {{ avatar_link(request.user) }}
+    {% else %}
+      {{ avatar_link(message.recipient) }}
+    {% endif %}
+  </span>
+  <span class="to">
+    {% if message.recipients > 1 -%}
+      {% set comma = joiner(', ') %}
+      {% for user in message.to.all() -%}
+        {{ comma() }}
+        {{ name_link(user) }}
+      {%- endfor %}
+    {% else %}{# Save a query! #}
+      {{ name_link(message.recipient) }}
+    {% endif %}
+    {{ datetimeformat(message.created) }}
+  </span>
+  <div class="message">{{ message.content_parsed }}</div>
+{%- endmacro %}
+
+
+{% macro message_form(form) -%}
+  {{ form.hidden_fields()|join|safe }}
+  <ul>
+    {% for field in form.visible_fields() %}
+      <li {% if field.errors %}class="invalid"{% endif %}>
+        {{ field.label_tag()|safe }}
+        {% if field.name == 'message' %}
+          {{ field.errors }}
+          {{ content_editor(field) }}
+          <div id="remaining-characters" data-max-characters="{{ field.field.max_length }}" data-input="#id_message">
+          </div>
+        {% else %}
+          {{ field|safe }}
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{%- endmacro %}

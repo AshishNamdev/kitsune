@@ -1,0 +1,10 @@
+{% macro titles(user) -%}
+  {% set titles = karma_titles(user) %}
+  {% if titles %}
+    <ul class="karma-titles">
+      {% for title in titles %}
+        <li>{{ _(title.name) }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{%- endmacro %}

@@ -1,0 +1,26 @@
+{% macro search_result(result) %}
+  <div class="result {{ result.type }}">
+    <h3><a class="title" href="{{ result.url }}" data-ga-click="_trackEvent | Instant Search | Result Clicked">{{ result.title }}</a></h3>
+    <a tabindex="-1" href="{{ result.url }}" data-ga-click="_trackEvent | Instant Search | Result Clicked">{{ result.search_summary | safe }}</a>
+    {% if result.type == 'question' %}
+      <ul class="thread-meta cf">
+        {% if result.is_solved %}
+          <li>{{ _('Solved') }}</li>
+        {% endif %}
+        <li>
+          {% if result.num_answers > 0 %}
+            {{ ngettext('1 reply', '%s replies', result.num_answers)|f([result.num_answers]) }}
+          {% else %}
+            {{ _('No replies') }}
+          {% endif %}
+        </li>
+        <li>
+          {{ ngettext('1 person has this problem', '%s people have this problem', result.num_votes)|f([result.num_votes]) }}
+        </li>
+        <li>
+          {{ ngettext('1 new this week', '%s new this week', result.num_votes_past_week)|f([result.num_votes_past_week]) }}
+        </li>
+      </ul>
+    {% endif %}
+  </div>
+{% endmacro %}

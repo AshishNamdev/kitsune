@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% set title = _('Media Gallery') %}
+{% set styles = ('gallery',) %}
+{% if submitted %}
+  {% set classes = 'submitted' %}
+{% endif %}
+{% set scripts = ('wiki', 'gallery') %}
+{% set crumbs = [(None, _('Media Gallery'))] %}
+
+{% block above_main %}
+  {% if user.is_authenticated() %}
+    <a id="btn-upload" class="btn btn-submit" href="#">{{ _('Upload a New Media File') }}</a>
+  {% endif %}
+  <h1>{{ _('Media Gallery') }}</h1>
+{% endblock %}
+
+{% block content %}
+  <div class="cf">
+    <div class="grid_6">
+      <form action="{{ url('gallery.search', media_type=media_type) }}" method="get" class="simple-search-form" id="gallery-search">
+        <input class="searchbox" type="search" name="q" required="required" placeholder="{{ _('Search Gallery') }}" />
+        <button class="submit-button" title="{{ _('Search') }}" type="submit">
+        </button>
+      </form>
+    </div>
+
+    <div class="grid_6">
+      <div id="locale-filter">
+        <form action="#" method="get">
+          <label for="select-locale">{{ _('Show media for:') }}</label>
+          <select id="select-locale" name="lang" class="autosubmit">
+            {% for lang in settings.LANGUAGE_CHOICES %}
+              <option value="{{ lang[0] }}" {% if lang[0] == request.LANGUAGE_CODE %}selected="selected"{% endif %}>{{ lang[1] }} ({{ lang[0] }})</option>
+            {% endfor %}
+          </select>
+          <noscript>
+            <input type="submit" value="{{ _('Go') }}">
+          </noscript>
+        </form>
+      </div>
+
+      <div id="media-type-filter">
+        <span>{{ _("Show:") }}</span>
+        <select id="media-type-select">
+          <option {% if media_type == 'image' %}selected="selected"{% endif %} value="{{ url('gallery.gallery', 'image') }}">{{ _('Images') }}</option>
+          <option {% if media_type == 'video' %}selected="selected"{% endif %} value="{{ url('gallery.gallery', 'video') }}">{{ _('Videos') }}</option>
+        </select>
+        <noscript>
+          <a href="{{ url('gallery.gallery', 'image') }}">{{ _('Images') }}</a> |
+          <a href="{{ url('gallery.gallery', 'video') }}">{{ _('Videos') }}</a>
+        </noscript>
+      </div>
+    </div>
+  </div>
+
+  {% with media_list=media %}
+    {% include 'gallery/includes/media_list.html' %}
+  {% endwith %}
+
+  {% if user.is_authenticated() %}
+    {% include 'gallery/includes/upload_media_form.html' %}
+  {% endif %}
+{% endblock %}

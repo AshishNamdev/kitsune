@@ -1,0 +1,14 @@
+{% extends "users/base.html" %}
+{% from "layout/errorlist.html" import errorlist %}
+
+{% set title = _('Log In / Register') %}
+{% set styles = ('users',) %}
+{% set classes = 'login register contributor' if contributor else 'login register' %}
+
+{% block content %}
+  {% if contributor %}
+    {% include "users/includes/auth_contributor.html" %}
+  {% else %}
+    {% include "users/includes/auth.html" %}
+  {% endif %}
+{% endblock %}

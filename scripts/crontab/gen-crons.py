@@ -14,8 +14,8 @@ def main():
                       help="Location of kitsune (required)")
     parser.add_option("-u", "--user",
                       help=("Prefix cron with this user. "
-                           "Only define for cron.d style crontabs"))
-    parser.add_option("-p", "--python", default="/usr/bin/python2.6",
+                            "Only define for cron.d style crontabs"))
+    parser.add_option("-p", "--python", default="python",
                       help="Python interpreter to use")
 
     (opts, args) = parser.parse_args()
@@ -23,15 +23,21 @@ def main():
     if not opts.kitsune:
         parser.error("-k must be defined")
 
-    # To pick up the right PyOpenSSL:
-    python_path = 'PYTHONPATH=/usr/local/lib64/python2.6/site-packages'
-
-    ctx = {'django': 'cd %s; %s %s manage.py' % (
-        opts.kitsune, python_path, opts.python),}
+    ctx = {
+        'django': 'cd %s; source virtualenv/bin/activate; %s manage.py' % (
+            opts.kitsune, opts.python),
+        'scripts': 'cd %s; source virtualenv/bin/activate; %s' % (
+            opts.kitsune, opts.python),
+    }
     ctx['cron'] = '%s cron' % ctx['django']
+    # Source the venv, don't mess with manage.py
+    ctx['rscripts'] = ctx['scripts']
 
     if opts.user:
         for k, v in ctx.iteritems():
+            if k == 'rscripts':
+                # rscripts get to run as whatever user is specified in crontab.tpl
+                continue
             ctx[k] = '%s %s' % (opts.user, v)
 
     # Needs to stay below the opts.user injection.

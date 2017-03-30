@@ -4,15 +4,62 @@ Development
 
 This covers loosely how we do big feature changes.
 
+Changes that involve new Python dependencies
+============================================
+
+We use peep to install dependencies. That means that all dependencies have an
+associated hash (or several) that are checked at download time. This ensures
+malicious code doesn't sneak in through dependencies being hacked, and also
+makes sure we always get the exact code we developed against. Changes in
+dependencies, malicious or not, will set of red flags and require human
+intervention.
+
+A peep requirement stanza looks something like this::
+
+    # sha256: mmQhHJajJiuyVFrMgq9djz2gF1KZ98fpAeTtRVvpZfs
+    Django==1.6.7
+
+hash lines can be repeated, and other comments can be added. The stanza is
+delimited by non-comment lines (such as blank lines or other requirements).
+
+To add a new dependency, you need to get a hash of the dependency you are
+installing. There are several ways you could go about this. If you already have
+a tarball (or other appropriate installable artifact) you could use ``peep hash
+foo.tar.gz``, which will give the base64 encoded sha256 sum of the artifact,
+which you can then put into a peep stanza.
+
+If you don't already have an artifact, you can simply add a line to the
+requirements file without a hash, for example ``Django``. Without a version,
+peep will grab the latest version of the dependency. If that's not what you
+want, put a version there too, like ``Django==1.6.7``.
+
+Now run peep with::
+
+    ./peep.sh install -r requirements/default.txt
+
+Peep will download the appropriate artifacts (probably a tarball), hash it, and
+print out something like::
+
+    The following packages had no hashes specified in the requirements file, which
+    leaves them open to tampering. Vet these packages to your satisfaction, then
+    add these "sha256" lines like so:
+
+
+    # sha256: mmQhHJajJiuyVFrMgq9djz2gF1KZ98fpAeTtRVvpZfs
+    Django==1.6.7
+
+Copy and paste that stanza into the requirements file, replacing the hash-less
+stanza you had before. Now re-run peep to install the file for real. Look
+around and make sure nothing horrible went wrong, and that you got the right
+package. When you are satisfied that you have what you want, commit, push, and
+rejoice.
+
 
 Changes that involve database migrations
 ========================================
 
 Any changes to the database (model fields, model field data, adding
-permissions, ...) need a migration.
-
-We use `schematic <https://github.com/jbalogh/schematic>`_ for
-migrations.
+permissions, ...) require a migration.
 
 
 Running migrations
@@ -20,75 +67,98 @@ Running migrations
 
 To run migrations, you do::
 
-    ./vendor/src/schematic/schematic migrations/
+    $ ./manage.py migrate
 
-It'll perform any migrations that haven't been performed, yet.
-
-
-Creating a new migration
-------------------------
-
-Each migration increases the schema version number by 1. You can
-figure out which schema your database is running by doing::
-
-    ./vendor/src/schematic/schematic -v migrations
-
-Migrations are stored in files in ``migrations/``.
-
-To create a new migration, you'll create a new file in the
-``migrations/`` directory. The first part of the filename is the
-schema version number. Then a dash. Then some name that indicates what
-the migration is for. See the directory for examples.
-
-There are a bunch of ways to create the substance of the file. It
-depends on what it is you're trying to do. One way is to base it on
-the output of::
-
-    ./manage.py sqlall <appname>
-
-for the app that you made changes to, then editing that down to the
-bits needed.
-
-.. Note::
-
-   If you have CREATE TABLE statements, make sure they end with setting
-   the engine to InnoDB. For example::
-
-       CREATE TABLE `topics_topic` (
-           `id` integer AUTO_INCREMENT NOT NULL PRIMARY KEY,
-           `title` varchar(255) NOT NULL,
-           `slug` varchar(50) NOT NULL,
-           `description` longtext NOT NULL,
-           `image` varchar(250),
-           `parent_id` integer,
-           `display_order` integer NOT NULL,
-           `visible` bool NOT NULL
-       ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;
+It'll perform any migrations that haven't been performed for all apps.
 
 
-.. Note::
+Creating a schema migration
+---------------------------
 
-   If you created new models, make sure to insert the content type and
-   default permissions. e.g. Something like this::
+To create a new migration the automatic way:
 
-      INSERT INTO django_content_type (name, app_label, model) VALUES
-          ('record', 'search', 'record');
-      SET @ct = (SELECT id from django_content_type WHERE app_label='search'
-          and model='record');
-      INSERT INTO auth_permission (name, content_type_id, codename) VALUES
-          ('Can add record', @ct, 'add_record'),
-          ('Can change record', @ct, 'change_record'),
-          ('Can delete record', @ct, 'delete_record'),
-          ('Can run a full reindexing', @ct, 'reindex');
+1. make your model changes
+2. run::
+
+       ./manage.py makemigrations <app>
 
 
-Testing a migration
--------------------
+   where ``<app>`` is the app name (sumo, wiki, questions, ...).
 
-You can dump your db to a file to save its state, then run the
-migrations. That way if the migration has bugs, you can restore your
-database.
+3. add a module-level docstring to the new migration file specifying
+   what it's doing since we can't easily infer that from the code
+   because the code shows the new state and not the differences
+   between the old state and the new stage
 
+4. run the migration on your machine::
+
+       ./manage.py migrate
+
+5. run the tests to make sure everything works
+6. add the new migration files to git
+7. commit
+
+
+.. seealso::
+
+   https://docs.djangoproject.com/en/1.7/topics/migrations/#adding-migrations-to-apps
+     Django documentation: Adding migrations to apps
+
+
+Creating a data migration
+=========================
+
+Creating data migrations is pretty straight-forward in most cases.
+
+To create a data migration the automatic way:
+
+1. run::
+
+       ./manage.py makemigrations --empty <app>
+
+   where ``<app>`` is the app name (sumo, wiki, questions, ...).
+
+2. edit the data migration you just created to do what you need it to
+   do
+3. make sure to add `reverse_code` arguments to all `RunPython` operations
+   which undoes the changes
+4. add a module-level docstring explaining what this migration is doing
+5. run the migration forwards and backwards to make sure it works
+   correctly
+6. add the new migration file to git
+7. commit
+
+.. seealso::
+
+   https://docs.djangoproject.com/en/1.7/topics/migrations/#data-migrations
+     Django documentation: Data Migrations
+
+.. seealso::
+
+   https://docs.djangoproject.com/en/1.7/ref/migration-operations/#runpython
+
+
+Data migrations for data in non-kitsune apps
+--------------------------------------------
+
+If you're doing a data migration that adds data to an app that's not
+part of kitsune, but is instead a library (e.g. django-waffle), then
+create the data migration in the sumo app and add a dependency to
+the latest migration in the library app.
+
+For example, this adds a dependency to django-waffle's initial migration::
+
+    class Migration(migrations.Migration):
+
+        dependencies = [
+            ...
+            ('waffle', '0001_initial'),
+            ...
+        ]
+
+
+
+.. _changes_reindexing:
 
 Changes that involve reindexing
 ===============================

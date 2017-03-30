@@ -1,0 +1,54 @@
+{% macro revision(rev) %}
+
+  <li>
+    <div class="date">
+      {{ rev.Revision }}
+      <a href="{{ rev.get_absolute_url() }}" rel="nofollow">
+        {{ datetimeformat(rev.created, format='datetime') }}
+      </a>
+    </div>
+    <div class="showdiff">
+      {% set prev_rev = rev.previous %}
+      {% if prev_rev %}
+        {% set diff_url = url('wiki.compare_revisions', rev.document.slug) %}
+        {% set diff_url = diff_url|urlparams(from=prev_rev.id, to=rev.id, locale=rev.document.locale) %}
+        <a class="show-diff" href="{{ diff_url }}">
+          <img class="icon-search" src="{{ STATIC_URL }}sumo/img/blank.png" alt="{{ _('View Diff') }}" />
+        </a>
+        <img class="loading" src="/media/img/wait-trans.gif" alt="" />
+        <a class="close-diff" href="">
+          <img class="icon-back" src="{{ STATIC_URL }}sumo/img/blank.png" alt="{{ _('Close Diff') }}" />
+        </a>
+      {% endif %}
+    </div>
+    <div class="title">
+      <span class="locale">{{ rev.document.locale }}</span>
+      <a href="{{ rev.document.get_absolute_url() }}">{{ rev.document.title }}</a>
+    </div>
+    <div class="comment wider">
+      {{ rev.comment|linkify|safe }}
+    </div>
+    <div class="creator">
+      <a href="{{ rev.creator.get_absolute_url() }}">
+        {{ display_name(rev.creator) }}
+      </a>
+    </div>
+  </li>
+
+{% endmacro %}
+
+<ul>
+  <li class="header">
+    <div class="date">{{ _('Revision') }}</div>
+    <div class="showdiff"> </div>
+    <div class="title">{{ _('Title') }}</div>
+    <div class="comment wider">{{ _('Comment') }}</div>
+    <div class="creator">{{ _('Editor') }}</div>
+  </li>
+
+  {% for rev in revisions %}
+    {{ revision(rev) }}
+  {% endfor %}
+</ul>
+
+{{ revisions|paginator }}

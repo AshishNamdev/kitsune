@@ -1,0 +1,45 @@
+{% extends 'email/base.html' %}
+
+{% block styles %}
+  .centered {
+    text-align: center;
+  }
+
+  .badge > img {
+    height: 256px;
+    width: 256px;
+  }
+{% endblock %}
+
+{% block content %}
+<div class="centered">
+  <h1>{{ _('Congratulations!') }}</h1>
+
+  {% if badge.image %}
+    <p class="badge">
+      <img src="{{ badge.image.url }}" alt="" title="" />
+    </p>
+  {% endif %}
+
+  <p>
+    {% if award.creator %}
+      {% trans awarder=display_name(award.creator), title=pgettext('DB: badger.Badge.title', badge.title) %}
+        <strong>{{ awarder }}</strong> has awarded you the
+        <strong>{{ title }}</strong> badge!
+      {% endtrans %}
+    {% else %}
+      {% trans title=pgettext('DB: badger.Badge.title', badge.title) %}
+        You have been awarded the <strong>{{ title }}</strong> badge!
+      {% endtrans %}
+    {% endif %}
+  </p>
+
+  {% if award.description %}
+    <p>{{ award.description }}</p>
+  {% endif %}
+
+  <p>
+    <a class="button" href="https://{{ host }}{{ award.get_absolute_url() }}">{{ _('See all the details...') }}</a>
+  </p>
+</div>
+{% endblock %}

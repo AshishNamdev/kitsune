@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import json
 import logging
 import subprocess
 import sys
@@ -6,8 +7,7 @@ import textwrap
 import xmlrpclib
 
 
-USAGE = 'Usage: year_in_review.py <YEAR>'
-HEADER = 'year_in_review.py: find out what happened!'
+USAGE = 'Usage: year_in_review.py [--json] <YEAR>'
 
 
 # Note: Most of the bugzila api code comes from Scrumbugz.
@@ -17,10 +17,21 @@ log = logging.getLogger(__name__)
 BZ_URL = 'http://bugzilla.mozilla.org/xmlrpc.cgi'
 SESSION_COOKIES_CACHE_KEY = 'bugzilla-session-cookies'
 
-PRODUCTS = ['support.mozilla.org']
-BZ_RESOLUTIONS = ['', 'FIXED', 'INVALID', 'WONTFIX', 'DUPLICATE',
-                  'WORKSFORME', 'INCOMPLETE', 'SUPPORT', 'EXPIRED',
-                  'MOVED']
+PRODUCTS = [
+    'support.mozilla.org'
+]
+BZ_RESOLUTIONS = [
+    '',
+    'FIXED',
+    'INVALID',
+    'WONTFIX',
+    'DUPLICATE',
+    'WORKSFORME',
+    'INCOMPLETE',
+    'SUPPORT',
+    'EXPIRED',
+    'MOVED'
+]
 BZ_FIELDS = [
     'id',
     'status',
@@ -181,15 +192,17 @@ def parse_whiteboard(whiteboard):
     return bits
 
 
-def print_bugzilla_stats(year):
-    stats = {}
+def bugzilla_stats(year):
+    stats = []
 
     bugzilla = BugzillaAPI(
         BZ_URL,
         transport=SessionTransport(use_datetime=True),
         allow_none=True)
 
-    # created in year
+    # -------------------------------------------
+    # Bugs created this year
+    # -------------------------------------------
     bugs = bugzilla.get_bugs(
         product=PRODUCTS,
         creation_time='%s-01-01' % year,
@@ -208,17 +221,22 @@ def print_bugzilla_stats(year):
         total += 1
         creators[bug['creator']] = creators.get(bug['creator'], 0) + 1
 
-    stats['created'] = total
-    creators = creators.items()
-    creators.sort(key=lambda item: item[1])
-    creators.reverse()
-    stats['created_by'] = creators[:10]
+    creators = sorted(creators.items(), key=lambda item: item[1], reverse=True)
 
-    # resolved in year
+    stats.append(('Bugs created', {
+        'total': total,
+        'breakdown': [
+            {'name': mem[0].split('@')[0], 'count': mem[1]}
+            for mem in creators[:10]]
+    }))
+
+    # -------------------------------------------
+    # Bugs resolved this year
+    # -------------------------------------------
     bugs = bugzilla.get_bugs(
         product=PRODUCTS,
         last_change_time='%s-01-01' % year,
-        include_fields=['id', 'assigned_to', 'last_change_time', 'resolution'],
+        include_fields=['id', 'summary', 'assigned_to', 'last_change_time', 'resolution'],
         status=['RESOLVED', 'VERIFIED', 'CLOSED'],
         history=True,
         comments=False)
@@ -228,11 +246,22 @@ def print_bugzilla_stats(year):
     peeps = {}
     resolutions = {}
 
+    traceback_bugs = []
+    research_bugs = []
+    tracker_bugs = []
+
     for bug in bugs:
         # We can only get last_change_time >= somedate, so we need to
         # nix the bugs that are after the year we're looking for.
         if bug['last_change_time'].year != int(year):
             continue
+
+        if bug['summary'].lower().startswith('[traceback]'):
+            traceback_bugs.append(bug)
+        if bug['summary'].lower().startswith('[research]'):
+            research_bugs.append(bug)
+        if bug['summary'].lower().startswith('[tracker]'):
+            tracker_bugs.append(bug)
 
         for hist in bug['history']:
             for change in hist['changes']:
@@ -263,89 +292,176 @@ def print_bugzilla_stats(year):
                 resolutions[change['added']] = resolutions.get(
                     change['added'], 0) + 1
 
-    peeps = peeps.items()
-    peeps.sort(key=lambda item: sum(item[1].values()))
-    peeps.reverse()
+    peeps = sorted(peeps.items(), key=lambda item: sum(item[1].values()), reverse=True)
+    stats.append(('Bugs resolved', {
+        'total': total,
+        'breakdown': [
+            {'name': mem[0].split('@')[0],
+             'total': sum(mem[1].values()),
+             'breakdown': mem[1].items()}
+            for mem in peeps[:10]
+        ]
+    }))
 
-    stats['resolved'] = total
-    stats['resolved_people'] = peeps[:10]
+    # -------------------------------------------
+    # Resolution stats
+    # -------------------------------------------
 
-    resolutions = resolutions.items()
-    resolutions.sort(key=lambda item: item[1])
-    stats['resolved_resolutions'] = resolutions
+    resolutions = sorted(resolutions.items(), key=lambda item: item[1])
+    stats.append(('Bugs resolved breakdown', resolutions))
 
-    print 'Bugs created:', stats['created']
-    print ''
-    for mem in stats['created_by']:
-        person = mem[0].split('@')[0]
-        print '  %20s : %s' % (person, mem[1])
+    # -------------------------------------------
+    # Research bugs
+    # -------------------------------------------
 
-    print ''
-    print 'Bugs resolved:', stats['resolved']
-    print ''
-    for mem in stats['resolved_people']:
-        person = mem[0].split('@')[0]
-        print '  %20s : %d' % (person, sum(mem[1].values()))
-        for res, count in mem[1].items():
-            print '  %20s : %10s %d' % ('', res, count)
-
-    print ''
-    for mem in stats['resolved_resolutions']:
-        print '  %20s : %s' % (mem[0], mem[1])
+    stats.append(('Research bugs', [
+        {'id': bug['id'], 'summary': bug['summary']}
+        for bug in research_bugs
+    ]))
 
 
-def print_git_stats(year):
-    stats = {}
-    commits = subprocess.check_output(
-        ['git', 'log',
-         '--after=%s-01-01' % year,
-         '--before=%s-01-01' % (int(year) + 1),
-         '--format=%an'])
-    commits = commits.splitlines()
+    # -------------------------------------------
+    # Trackers
+    # -------------------------------------------
 
-    stats['commits'] = len(commits)
+    stats.append(('Tracker bugs', [
+        {'id': bug['id'], 'summary': bug['summary']}
+        for bug in tracker_bugs
+    ]))
+
+    return stats
+
+
+def git(*args):
+    return subprocess.check_output(args)
+
+
+def git_stats(year):
+    stats = []
+
+    # Get the shas for all the commits we're going to look at.
+    all_commits = subprocess.check_output([
+        'git', 'log',
+        '--after=%s-01-01' % year,
+        '--before=%s-01-01' % (int(year) + 1),
+        '--format=%H'
+    ])
+
+    all_commits = all_commits.splitlines()
+
+    # Person -> # commits
     committers = {}
-    for mem in commits:
-        committers[mem] = committers.get(mem, 0) + 1
 
-    committers = committers.items()
-    committers.sort(key=lambda item: item[1])
-    committers.reverse()
-    stats['committers'] = committers
+    # Person -> (# files changed, # inserted, # deleted)
+    changes = {}
 
-    print 'Total commits:', stats['commits']
+    for commit in all_commits:
+        author = git('git', 'log', '--format=%an',
+                     '{0}~..{1}'.format(commit, commit))
+
+        author = author.strip()
+        # FIXME - this is lame. what's going on is that there are
+        # merge commits which have multiple authors, so we just grab
+        # the second one.
+        if '\n' in author:
+            author = author.splitlines()[1]
+
+        committers[author] = committers.get(author, 0) + 1
+
+        diff_data = git('git', 'diff', '--numstat', '--find-copies-harder',
+                        '{0}~..{1}'.format(commit, commit))
+        total_added = 0
+        total_deleted = 0
+        total_files = 0
+
+        for line in diff_data.splitlines():
+            added, deleted, fn = line.split('\t')
+            if fn.startswith('vendor/'):
+                continue
+            if added != '-':
+                total_added += int(added)
+            if deleted != '-':
+                total_deleted += int(deleted)
+            total_files += 1
+
+        old_changes = changes.get(author, (0, 0, 0))
+        changes[author] = (
+            old_changes[0] + total_added,
+            old_changes[1] + total_deleted,
+            old_changes[2] + total_files
+        )
+
+    print 'Total commits:', len(all_commits)
     print ''
-    for mem in stats['committers']:
-        print '  %20s : %s' % (mem[0], mem[1])
+
+    committers = sorted(
+        committers.items(), key=lambda item: item[1], reverse=True)
+
+    committers_data = []
+    for person, count in committers:
+        committers_data.append({
+            'name': person,
+            'data': {
+                'commits': count,
+                'added': changes[person][0],
+                'deleted': changes[person][1],
+                'files': changes[person][2]
+            }
+        })
 
 
-def print_header(text):
-    print ''
-    print text
-    print '=' * len(text)
-    print ''
+    stats.append(('Git commit data', {
+            'total commits': len(all_commits),
+            'total lines added': sum([item[0] for item in changes.values()]),
+            'total lines deleted': sum([item[1] for item in changes.values()]),
+            'total files changed': sum([item[2] for item in changes.values()])
+    }))
+
+    stats.append(('Git committer data', committers_data))
+
+    return stats
 
 
 def main(argv):
     # XXX: This helps debug bugzilla xmlrpc bits.
     # logging.basicConfig(level=logging.DEBUG)
 
+    do_json = False
+
     if not argv:
         print USAGE
         print 'Error: Must specify the year. e.g. 2012'
         return 1
 
+    if '--json' in argv:
+        print '>>> OMGWTFBBQ! You want it in JSON!'
+        do_json = True
+        argv.remove('--json')
+
     year = argv[0]
 
-    print HEADER
+    output = []
+    output.append(('Year', year))
 
-    print_header('Twas the year: %s' % year)
+    print '>>> Generating bugzilla stats....'
+    output.extend(bugzilla_stats(year))
 
-    print_header('Bugzilla')
-    print_bugzilla_stats(year)
+    print '>>> Generating git stats....'
+    output.extend(git_stats(year))
 
-    print_header('git')
-    print_git_stats(year)
+    print ''
+
+    if do_json:
+        print json.dumps(output, indent=2)
+
+    else:
+        for mem in output:
+            print ''
+            print mem[0]
+            print '=' * len(mem[0])
+            print ''
+            # FIXME - this is gross
+            print json.dumps(mem[1], indent=2)
 
 
 if __name__ == '__main__':

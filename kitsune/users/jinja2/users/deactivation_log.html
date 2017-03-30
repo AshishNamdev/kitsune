@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% set title = _('Deactivation Log') %}
+
+{% set styles = ('users',) %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <table id="deactivations-log">
+    <thead>
+      <tr>
+        <th>{{ _('Date') }}</th>
+        <th>{{ _('Deactivated user') }}</th>
+        <th>{{ _('Deactivated by') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for deactivation in deactivations %}
+        <tr>
+          <td>{{ deactivation.date }}</td>
+          <td><a href="{{ profile_url(deactivation.user) }}">
+              {{ deactivation.user }}</a></td>
+          <td><a href="{{ profile_url(deactivation.moderator) }}">
+              {{ deactivation.moderator }}</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {{ deactivations|quick_paginator }}
+{% endblock %}

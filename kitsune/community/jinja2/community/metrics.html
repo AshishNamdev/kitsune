@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% set title = _('Contributor Metrics') %}
+{% set crumbs = [(url('community.home'), _('Community Hub')),
+                 (None, title)] %}
+
+{% set styles = ('kpi.dashboard', 'rickshaw',) %}
+{% set scripts = ('rickshaw', 'kpi.dashboard',) %}
+
+{% block content %}
+  <article id="kpi-dash">
+    <h1>{{ _('Contributor Metrics') }}</h1>
+      <section id="kpi-cohort-analysis" data-url="/api/2/cohort" data-contributor-type="contributor:kb:en-US">
+      <h2>{{ _('Retention') }}</h2>
+      <div id="retention-chart" class="graph" data-chart-type="d3" data-slug="retention">
+        <div class="inline-controls">
+          <div>
+            <select id="toggle-cohort-type">
+              {# The locale code is not localizable - the data are for English only. #}
+              <option value="contributor:kb:en-US">en-US</option>
+              <option value="contributor:kb:l10n">{{ _('L10N') }}</option>
+              <option value="contributor:supportforum:helper">{{ _('Support Forum Help') }}</option>
+              <option value="contributor:aoa">{{ _('Army of Awesome') }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="kpi-csat-enus"
+     data-url="{{ url('api.kpi.csat-contributors-kb-enus') }}">
+
+      {# The locale code is not localizable - the data are for English only. #}
+      <h2>{{ _('Contributor Satisfaction: %(locale)s', locale='en-US') }}</h2>
+
+      <div class="rickshaw">
+        <div class="inline-controls"></div>
+        <div class="graph-container">
+          <div class="slider"></div>
+          <div class="graph" data-chart-type="rickshaw" data-slug="csat"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="kpi-csat-l10n"
+     data-url="{{ url('api.kpi.csat-contributors-kb-l10n') }}">
+
+      <h2>{{ _('Contributor Satisfaction: l10n') }}</h2>
+
+      <div class="rickshaw">
+        <div class="inline-controls"></div>
+        <div class="graph-container">
+          <div class="slider"></div>
+          <div class="graph" data-chart-type="rickshaw" data-slug="csat"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="kpi-csat-support"
+     data-url="{{ url('api.kpi.csat-contributors-support-forum') }}">
+
+      <h2>{{ _('Contributor Satisfaction: Support Forum') }}</h2>
+
+      <div class="rickshaw">
+        <div class="inline-controls"></div>
+        <div class="graph-container">
+          <div class="slider"></div>
+          <div class="graph" data-chart-type="rickshaw" data-slug="csat"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="kpi-csat-aoa"
+     data-url="{{ url('api.kpi.csat-contributors-aoa') }}">
+
+      <h2>{{ _('Contributor Satisfaction: Army of Awesome') }}</h2>
+
+      <div class="rickshaw">
+        <div class="inline-controls"></div>
+        <div class="graph-container">
+          <div class="slider"></div>
+          <div class="graph" data-chart-type="rickshaw" data-slug="csat"></div>
+        </div>
+      </div>
+    </section>
+  </article>
+{% endblock %}

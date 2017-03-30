@@ -1,0 +1,178 @@
+{% extends "community/base.html" %}
+
+{% set title = _('Community Hub') %}
+{% set crumbs = [(None, title)] %}
+
+{% block content %}
+  <h1 class="main-heading">{{ _('Community Hub') }}</h1>
+
+  <article class="contributors">
+    <h1>{{ _('Community Health Metrics') }}</h1>
+    <p><a href="{{ url('community.metrics') }}"><img class="health-metrics" src="{{ STATIC_URL }}sumo/img/community/chart-thumbnail.png" width="400" height="218" alt="{{ _('View Community Metrics') }}" />
+    {{ _('View Community Health Metrics') }}</a></p>
+    <h1>{{ _('Top Contributors') }}</h1>
+    {# Locale Filter #}
+    <div class="selector">
+      <button type="button" class="ts-select-trigger">
+        <!-- arrow icon using icon font -->
+        <span aria-hidden="true" data-icon-arrow="&#xe800;" class="selector-arrow">
+            <span class='current-selected'>
+              {% if not locale %}
+                {{ _('Filter by Locale') }}
+              {% else %}
+                {{ settings.LANGUAGES_DICT[locale.lower()] }}
+              {% endif %}
+            </span>
+        </span>
+      </button>
+      <div class="select-options ts-modal" aria-expanded="false">
+        {% set base_url = url('community.home') %}
+        {% if product %}
+          {% set base_url = base_url|urlparams(product=product.slug) %}
+        {% endif %}
+        <ul class="ts-options" tabindex="-1">
+          <li>
+            <a href="{{ base_url }}" {% if not locale %} aria-checked="true" class="selected"{% endif %}>
+              {{ _('All locales') }}
+            </a>
+          </li>
+          {% for l in settings.LANGUAGE_CHOICES %}
+            <li>
+              <a href="{{ base_url|urlparams(locale=l[0]) }}"{% if l[0] == locale %} aria-checked="true" class="selected"{% endif %}>
+                {{ l[1] }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    {# Product Filter #}
+    <div class="selector">
+      <button type="button" class="ts-select-trigger">
+        <!-- arrow icon using icon font -->
+        <span aria-hidden="true" data-icon-arrow="&#xe800;" class="selector-arrow">
+            <span class='current-selected'>
+              {% if not product %}
+                {{ _('Filter by Product') }}
+              {% else %}
+                {{ pgettext('DB: products.Product.title', product.title) }}
+              {% endif %}
+            </span>
+        </span>
+      </button>
+      <div class="select-options ts-modal" aria-expanded="false">
+        {% set base_url = url('community.home') %}
+        {% if locale %}
+          {% set base_url = base_url|urlparams(locale=locale) %}
+        {% endif %}
+        <ul class="ts-options" tabindex="-1">
+          <li>
+            <a href="{{ base_url }}" {% if not product %} aria-checked="true" class="selected"{% endif %}>
+              {{ _('All products') }}
+            </a>
+          </li>
+          {% for p in products %}
+            <li>
+              <a href="{{ base_url|urlparams(product=p.slug) }}"{% if p == product %} aria-checked="true" class="selected"{% endif %}>
+                 {{ pgettext('DB: products.Product.title', p.title) }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    {% if top_contributors_questions %}
+    <section class="contributor-group">
+      <h2>{{ _('Support Forum') }}</h2>
+      {{ render_contributors(top_contributors_questions, 'questions', locale) }}
+    </section>
+    {% endif %}
+
+    {% if top_contributors_kb %}
+      <section class="contributor-group">
+        <h2>{{ _('Knowledge Base') }}</h2>
+        {{ render_contributors(top_contributors_kb, 'kb', locale) }}
+      </section>
+    {% endif %}
+
+    {% if top_contributors_l10n %}
+      <section class="contributor-group">
+        <h2>{{ _('Localization') }}</h2>
+        {{ render_contributors(top_contributors_l10n, 'l10n', locale) }}
+      </section>
+    {% endif %}
+
+    {% if top_contributors_aoa %}
+      <section class="contributor-group">
+        <h2>{{ _('Army of Awesome') }}</h2>
+        {{ render_contributors(top_contributors_aoa, 'army-of-awesome', locale) }}
+      </section>
+    {% endif %}
+
+  </article>
+
+  <article class="community-news">
+    <section>
+      <h1>{{ _('Find your fellow contributors') }}</h1>
+
+      <form name="find-contributor" id="find-contributor" action="{{ url('community.search') }}" method="get">
+        <fieldset>
+          <input type="text" name="q" id="search" placeholder="{{ _('Username, Display Name or Twitter Handle') }}" />
+          <input type="submit" value="{{ _('Search') }}" class="search" />
+        </fieldset>
+      </form>
+    </section>
+
+    {% if threads %}
+      <section id="recent-threads">
+        <h1>{{ _('Community Discussions') }}</h1>
+
+        <ul>
+          {% for thread in threads %}
+            <li>
+              <a href="{{ thread.get_absolute_url() }}">
+                {{ thread.title }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+        <p>
+          <a href="{{ threads[0].forum.get_absolute_url() }}">
+            {{ _('Go to the SUMO community discussions forum') }}
+          </a>
+        </p>
+      </section>
+    {% endif %}
+
+    {% if community_news %}
+      <section id="doc-content">
+        {{ community_news.html|safe }}
+      </section>
+    {% endif %}
+
+  </article>
+{% endblock %}
+
+{% macro render_contributors(results, area, locale) -%}
+  <ul class="contributor-list {{ area }}">
+    {% for result in results %}
+      <li>
+        {% set tooltip = _('{user} - {num} contributions in last 90 days')|f(user=result['user']['display_name'], num=result['count']) %}
+        <a href="{{ url('users.profile', result['user']['id']) }}" title="{{ tooltip }}">
+          <img src="{{ result['user']['avatar'] }}" alt="{{ tooltip }}" />
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+  <p>
+    {% set all_url = url('community.top_contributors', area=area) %}
+    {% if locale %}
+      {% set all_url = all_url|urlparams(locale=locale) %}
+    {% endif %}
+    <a href="{{ all_url }}" class="view-all">
+      {{ _('See All') }}
+    </a>
+  </p>
+{%- endmacro %}

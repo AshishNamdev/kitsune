@@ -4,7 +4,7 @@
 Search
 ======
 
-Kitsune uses `Elastic Search <http://www.elasticsearch.org/>`_ to
+Kitsune uses `Elasticsearch <https://www.elastic.co/>`_ to
 power its on-site search facility.
 
 It gives us a number of advantages over MySQL's full-text search or
@@ -20,23 +20,24 @@ Google's site search.
 * We can fine-tune the algorithm and scoring.
 
 
-Installing Elastic Search
-=========================
+Installing Elasticsearch
+========================
 
-There's an installation guide on the Elastic Search site.
+There's an installation guide on the Elasticsearch site:
 
-http://www.elasticsearch.org/guide/reference/setup/installation.html
+https://www.elastic.co/guide/en/elasticsearch/reference/1.3/setup-service.html
 
-We're currently using 0.20.5 in production. Most of us use that version.
+We're currently using `1.2.4 <https://www.elastic.co/downloads/past-releases/elasticsearch-1-2-4>`_
+in production.
 
-The directory you install Elastic Search in will hereafter be referred
+The directory you install Elasticsearch in will hereafter be referred
 to as ``ELASTICDIR``.
 
-You can configure Elastic Search with the configuration file at
+You can configure Elasticsearch with the configuration file at
 ``ELASTICDIR/config/elasticsearch.yml``.
 
-Elastic Search uses several settings in ``settings.py`` that you
-need to override in ``settings_local.py``. Here's an example::
+Elasticsearch uses several settings in ``kitsune/settings.py`` that you
+need to override in ``kitsune/settings_local.py``. Here's an example::
 
     # Connection information for Elastic
     ES_URLS = ['http://127.0.0.1:9200']
@@ -50,7 +51,7 @@ These settings explained:
 
     Defaults to ``['http://127.0.0.1:9200']``.
 
-    Points to the url for your Elastic Search instance.
+    Points to the url for your Elasticsearch instance.
 
     .. Warning::
 
@@ -106,9 +107,10 @@ These settings explained:
        settings in between.
 
 
-There are a few other settings you can set in your ``settings_local.py``
-file that override Elastic Utils defaults.  See `the Elastic Utils
-docs <http://elasticutils.readthedocs.org/en/latest/installation.html#configure>`_
+There are a few other settings you can set in your
+``kitsune/settings_local.py`` file that override ElasticUtils defaults.  See
+`the ElasticUtils docs
+<https://elasticutils.readthedocs.io/en/latest/django.html#configuration>`_
 for details.
 
 Other things you can change:
@@ -132,12 +134,12 @@ Other things you can change:
     Defaults to False.
 
     You can also set ``ES_LIVE_INDEXING`` in your
-    ``settings_local.py`` file. This affects whether Kitsune does
-    Elastic indexing when data changes in the ``post_save`` and
+    ``kitsune/settings_local.py`` file. This affects whether Kitsune does
+    Elasticsearch indexing when data changes in the ``post_save`` and
     ``pre_delete`` hooks.
 
     For tests, ``ES_LIVE_INDEXING`` is set to ``False`` except for
-    Elastic specific tests so we're not spending a ton of time
+    Elasticsearch specific tests so we're not spending a ton of time
     indexing things we're not using.
 
 ``ES_TIMEOUT``
@@ -150,17 +152,17 @@ Other things you can change:
     might be helpful.
 
 
-Using Elastic Search
-====================
+Using Elasticsearch
+===================
 
 Running
 -------
 
-Start Elastic Search by::
+Start Elasticsearch by::
 
     $ ELASTICDIR/bin/elasticsearch
 
-That launches Elastic Search in the background.
+That launches Elasticsearch in the background.
 
 
 Indexing
@@ -212,19 +214,13 @@ See ``--help`` for more details::
 
        $ ./manage.py celeryctl purge
 
-   If you purge the tasks, you need to reset the Redis scoreboard.
-   Connect to the appropriate Redis and set the value for the magic
-   key to 0. For example, my Redis is running at port 6383, so I::
-
-       $ redis-cli -p 6383 set search:outstanding_index_chunks 0
-
    If you do this often, it helps to write a shell script for it.
 
 
 Health/statistics
 -----------------
 
-You can see Elastic Search index status with::
+You can see Elasticsearch index status with::
 
     $ ./manage.py esstatus
 
@@ -248,9 +244,9 @@ Implementation details
 
 Kitsune uses `elasticutils <https://github.com/mozilla/elasticutils>`_
 and `pyelasticsearch
-<http://pyelasticsearch.readthedocs.org/en/latest/>`_.
+<https://pyelasticsearch.readthedocs.io/en/latest/>`_.
 
-Most of our code is in the ``search`` app in ``apps/search/``.
+Most of our code is in the ``search`` app in ``kitsune/search/``.
 
 Models in Kitsune that are indexable use ``SearchMixin`` defined in
 ``models.py``.
@@ -271,31 +267,31 @@ These are the default weights that apply to all searches:
 
 wiki (aka kb)::
 
-    document_title__text           6
-    document_content__text         1
-    document_keywords__text        8
-    document_summary__text         2
+    document_title__match           6
+    document_content__match         1
+    document_keywords__match        8
+    document_summary__match         2
 
 questions (aka support forums)::
 
-    question_title__text           4
-    question_content__text         3
-    question_answer_content__text  3
+    question_title__match           4
+    question_content__match         3
+    question_answer_content__match  3
 
 forums (aka contributor forums)::
 
-    post_title__text               2
-    post_content__text             1
+    post_title__match               2
+    post_content__match             1
 
 
-Elastic Search is built on top of Lucene so the `Lucene documentation
+Elasticsearch is built on top of Lucene so the `Lucene documentation
 on scoring
 <http://lucene.apache.org/core/old_versioned_docs/versions/3_5_0/scoring.html>`_
 covers how a document is scored in regards to the search query and its
 contents. The weights modify that---they're query-level boosts.
 
 Additionally, `this blog post from 2006 <http://www.supermind.org/blog/378>`_
-is really helpful in terms of provind insight on the implications of
+is really helpful in terms of providing insight on the implications of
 the way things are scored.
 
 
@@ -331,8 +327,17 @@ Regular search does the following:
 5. (filter) support forum posts tagged with the product
    (e.g. "desktop")
 6. (filter) support forum posts must have an answer marked as helpful
+7. (filter) support forum posts must not be archived
 
 It scores as specified above.
+
+
+Ask A Question search
+---------------------
+
+An `Ask a question` or `AAQ` search is any search that is performed within
+the AAQ workflow. The only difference to `regular` search is that `AAQ`
+search shows forum posts that have no answer marked as helpful.
 
 
 Advanced search
@@ -349,9 +354,9 @@ Troubleshooting category, then we add a filter where the result has to
 be in the Troubleshooting category.
 
 
-Link to the Elastic Search code
--------------------------------
+Link to the Elasticsearch code
+------------------------------
 
 Here's a link to the search view in the master branch:
 
-https://github.com/mozilla/kitsune/blob/master/apps/search/views.py
+https://github.com/mozilla/kitsune/blob/master/kitsune/search/views.py

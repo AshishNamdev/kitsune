@@ -24,12 +24,14 @@ during the day in Eastern Time.
 If you ask something and all you get is silence, then it's probably
 the case that we're not around. Please try pinging us again.
 
+You can also use the `dev-sumo mailing list
+<https://www.mozilla.org/about/forums/#dev-sumo>`_.
+
 Current primary developers:
 
 .. This is a slight repeat from AUTHORS. We just need to point out
 .. people to contact if someone is having problems.
 
-* James Socol (jsocol)
 * Ricky Rosario (r1cky)
 * Will Kahn-Greene (willkg)
 * Rehan Dalal (rdalal)
